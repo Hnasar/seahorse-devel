@@ -94,8 +94,47 @@ seahorse_application_finalize (GObject *gobject)
 static void
 seahorse_application_startup (GApplication *application)
 {
+    GtkBuilder *builder;
+
+	G_APPLICATION_CLASS (seahorse_application_parent_class)->startup (application);
+
 	/* Insert Icons into Stock */
 	seahorse_icons_init ();
+
+    /* App Menu */
+    builder = gtk_builder_new ();
+    gtk_builder_add_from_string (builder,
+            "<interface>"
+            "  <menu id='app-menu'>"
+            "    <section>"
+            "      <item>"
+            "        <attribute name='label' translatable='yes'>Import</attribute>"
+            "        <attribute name='action'>app.import</attribute>"
+            "      </item>"
+            "    </section>"
+            "    <section>"
+            "      <item>"
+            "        <attribute name='label' translatable='yes'>Preferences</attribute>"
+            "        <attribute name='action'>app.preferences</attribute>"
+            "      </item>"
+            "      <item>"
+            "        <attribute name='label' translatable='yes'>Help</attribute>"
+            "        <attribute name='action'>app.help</attribute>"
+            "      </item>"
+            "      <item>"
+            "        <attribute name='label' translatable='yes'>About Passwords and Keys</attribute>"
+            "        <attribute name='action'>app.about</attribute>"
+            "      </item>"
+            "    </section>"
+            "    <section>"
+            "      <item>"
+            "        <attribute name='label' translatable='yes'>Quit</attribute>"
+            "        <attribute name='action'>app.quit</attribute>"
+            "      </item>"
+            "    </section>"
+            "  </menu>"
+            "</interface>", -1, NULL);
+    gtk_application_set_app_menu (GTK_APPLICATION (application), G_MENU_MODEL (gtk_builder_get_object (builder, "app-menu")));
 
 	/* Initialize the various components */
 #ifdef WITH_PGP
@@ -114,8 +153,6 @@ seahorse_application_startup (GApplication *application)
 	/* HACK: get the inactivity timeout started */
 	g_application_hold (application);
 	g_application_release (application);
-
-	G_APPLICATION_CLASS (seahorse_application_parent_class)->startup (application);
 }
 
 static gboolean

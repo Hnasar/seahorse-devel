@@ -31,6 +31,7 @@
 #include "seahorse-collection.h"
 #include "seahorse-registry.h"
 #include "seahorse-progress.h"
+#include "seahorse-prefs.h"
 #include "seahorse-util.h"
 
 #include <glib/gi18n.h>
@@ -40,6 +41,10 @@ enum {
 	SHOW_PERSONAL,
 	SHOW_TRUSTED,
 };
+
+void           on_app_preferences                       (GSimpleAction *action,
+                                                         GVariant *parameter,
+                                                         gpointer user_data);
 
 void           on_keymanager_row_activated              (GtkTreeView* view,
                                                          GtkTreePath* path,
@@ -323,11 +328,79 @@ import_prompt (SeahorseKeyManager* self)
 }
 
 static void 
-on_key_import_file (GtkAction* action, SeahorseKeyManager* self) 
+on_key_import_file (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
+	SeahorseWidget *self = seahorse_widget_find ("key-manager");
 	g_return_if_fail (SEAHORSE_IS_KEY_MANAGER (self));
-	g_return_if_fail (GTK_IS_ACTION (action));
-	import_prompt (self);
+	g_return_if_fail (G_IS_ACTION (action));
+	import_prompt (SEAHORSE_KEY_MANAGER (self));
+}
+
+G_MODULE_EXPORT void
+on_app_preferences (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+    SeahorseCatalog *self = SEAHORSE_CATALOG (seahorse_widget_find ("key-manager"));
+	seahorse_prefs_show (seahorse_catalog_get_window (self), NULL);
+}
+
+static void
+on_help_show (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+    SeahorseCatalog *self = SEAHORSE_CATALOG (seahorse_widget_find ("key-manager"));
+	g_return_if_fail (SEAHORSE_IS_CATALOG (self));
+	g_return_if_fail (G_IS_ACTION (action));
+	seahorse_widget_show_help (SEAHORSE_WIDGET (self));
+}
+
+static void
+on_app_about (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+    SeahorseCatalog *self = SEAHORSE_CATALOG (seahorse_widget_find ("key-manager"));
+	GtkAboutDialog *about;
+
+	const gchar *authors[] = {
+		"Jacob Perkins <jap1@users.sourceforge.net>",
+		"Jose Carlos Garcia Sogo <jsogo@users.sourceforge.net>",
+		"Jean Schurger <yshark@schurger.org>",
+		"Stef Walter <stef@memberwebs.com>",
+		"Adam Schreiber <sadam@clemson.edu>",
+		"",
+		N_("Contributions:"),
+		"Albrecht Dreß <albrecht.dress@arcor.de>",
+		"Jim Pharis <binbrain@gmail.com>",
+		NULL
+	};
+
+	const gchar *documenters[] = {
+		"Jacob Perkins <jap1@users.sourceforge.net>",
+		"Adam Schreiber <sadam@clemson.edu>",
+		"Milo Casagrande <milo_casagrande@yahoo.it>",
+		NULL
+	};
+
+	const gchar *artists[] = {
+		"Jacob Perkins <jap1@users.sourceforge.net>",
+		"Stef Walter <stef@memberwebs.com>",
+		NULL
+	};
+
+	about = GTK_ABOUT_DIALOG (gtk_about_dialog_new ());
+	gtk_about_dialog_set_artists (about, artists);
+	gtk_about_dialog_set_authors (about, authors);
+	gtk_about_dialog_set_documenters (about, documenters);
+	gtk_about_dialog_set_version (about, VERSION);
+	gtk_about_dialog_set_comments (about, _("Passwords and Keys"));
+	gtk_about_dialog_set_copyright (about, "Copyright \xc2\xa9 2002 - 2010 Seahorse Project");
+	gtk_about_dialog_set_translator_credits (about, _("translator-credits"));
+	gtk_about_dialog_set_logo_icon_name (about, "seahorse");
+	gtk_about_dialog_set_website (about, "http://www.gnome.org/projects/seahorse");
+	gtk_about_dialog_set_website_label (about, _("Seahorse Project Homepage"));
+
+	g_signal_connect (about, "response", G_CALLBACK (gtk_widget_hide), NULL);
+	gtk_window_set_transient_for (GTK_WINDOW (about), seahorse_catalog_get_window (self));
+
+	gtk_dialog_run (GTK_DIALOG (about));
+	gtk_widget_destroy (GTK_WIDGET (about));
 }
 
 G_MODULE_EXPORT void 
@@ -412,11 +485,11 @@ on_key_import_clipboard (GtkAction* action, SeahorseKeyManager* self)
 }
 
 static void 
-on_app_quit (GtkAction* action,
-             SeahorseKeyManager* self)
+on_app_quit (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
+	SeahorseWidget *self = seahorse_widget_find ("key-manager");
 	g_return_if_fail (SEAHORSE_IS_KEY_MANAGER (self));
-	g_return_if_fail (GTK_IS_ACTION (action));
+	g_return_if_fail (G_IS_ACTION (action));
 	g_application_quit (G_APPLICATION (seahorse_application_get ()));
 }
 
@@ -506,16 +579,17 @@ static const GtkActionEntry GENERAL_ACTIONS[] = {
 	/* TRANSLATORS: The "Remote" menu contains key operations on remote systems. */
 	{ "remote-menu", NULL, N_("_Remote") }, 
 	{ "new-menu", NULL, N_("_New") },
-	{ "app-quit", GTK_STOCK_QUIT, NULL, "<control>Q", 
-	  N_("Close this program"), G_CALLBACK (on_app_quit) }, 
-	{ "file-new", GTK_STOCK_NEW, N_("_New..."), "<control>N", 
-	  N_("Create a new key or item"), G_CALLBACK (on_file_new) },
 	{ "new-object", GTK_STOCK_ADD, N_("_New..."), NULL,
 	  N_("Add a new key or item"), G_CALLBACK (on_file_new) },
-	{ "file-import", GTK_STOCK_OPEN, N_("_Import..."), "<control>I", 
-	  N_("Import from a file"), G_CALLBACK (on_key_import_file) }, 
 	{ "edit-import-clipboard", GTK_STOCK_PASTE, NULL, "<control>V", 
 	  N_("Import from the clipboard"), G_CALLBACK (on_key_import_clipboard) }
+};
+
+static GActionEntry APP_ACTIONS[] = {
+    { "import", on_key_import_file, NULL, NULL, NULL },
+    { "help", on_help_show, NULL, NULL, NULL },
+    { "about", on_app_about, NULL, NULL, NULL },
+    { "quit", on_app_quit, NULL, NULL, NULL },
 };
 
 static const GtkToggleActionEntry SIDEBAR_ACTIONS[] = {
@@ -647,6 +721,8 @@ static void
 seahorse_key_manager_constructed (GObject *object)
 {
 	SeahorseKeyManager *self = SEAHORSE_KEY_MANAGER (object);
+
+    GtkApplication *application;
 	GtkActionGroup* actions;
 	GtkTargetList* targets;
 	GtkTreeSelection *selection;
@@ -675,6 +751,18 @@ seahorse_key_manager_constructed (GObject *object)
 	                                                  self->pv->settings);
 
 
+    /* App Menu */
+    application = GTK_APPLICATION (seahorse_application_get());
+    g_action_map_add_action_entries (G_ACTION_MAP (application), APP_ACTIONS,
+                                     G_N_ELEMENTS (APP_ACTIONS), application);
+    if (seahorse_prefs_available()) {
+        GActionEntry pref_action[] = {
+            { "preferences", on_app_preferences, NULL, NULL, NULL }};
+        g_action_map_add_action_entries (G_ACTION_MAP (application), pref_action,
+                                         G_N_ELEMENTS (pref_action), application);
+    }
+
+    /* Other stuff */
 	actions = gtk_action_group_new ("general");
 	gtk_action_group_set_translation_domain (actions, GETTEXT_PACKAGE);
 	gtk_action_group_add_actions (actions, GENERAL_ACTIONS, G_N_ELEMENTS (GENERAL_ACTIONS), self);

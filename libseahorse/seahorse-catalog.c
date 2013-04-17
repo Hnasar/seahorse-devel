@@ -28,7 +28,6 @@
 #include "seahorse-catalog.h"
 #include "seahorse-common.h"
 #include "seahorse-object.h"
-#include "seahorse-prefs.h"
 #include "seahorse-progress.h"
 #include "seahorse-registry.h"
 #include "seahorse-util.h"
@@ -37,9 +36,6 @@
 
 #include <glib/gi18n-lib.h>
 #include <gtk/gtk.h>
-
-void                on_app_preferences                (GtkAction* action,
-                                                       gpointer user_data);
 
 enum {
 	PROP_0,
@@ -62,73 +58,6 @@ G_DEFINE_TYPE (SeahorseCatalog, seahorse_catalog, SEAHORSE_TYPE_WIDGET);
  * INTERNAL
  */
 
-
-G_MODULE_EXPORT void
-on_app_preferences (GtkAction* action,
-                    gpointer user_data)
-{
-	SeahorseCatalog *self = SEAHORSE_CATALOG (user_data);
-	seahorse_prefs_show (seahorse_catalog_get_window (self), NULL);
-}
-
-static void
-on_app_about (GtkAction* action, SeahorseCatalog *self)
-{
-	GtkAboutDialog *about;
-
-	const gchar *authors[] = {
-		"Jacob Perkins <jap1@users.sourceforge.net>",
-		"Jose Carlos Garcia Sogo <jsogo@users.sourceforge.net>",
-		"Jean Schurger <yshark@schurger.org>",
-		"Stef Walter <stef@memberwebs.com>",
-		"Adam Schreiber <sadam@clemson.edu>",
-		"",
-		N_("Contributions:"),
-		"Albrecht Dreß <albrecht.dress@arcor.de>",
-		"Jim Pharis <binbrain@gmail.com>",
-		NULL
-	};
-
-	const gchar *documenters[] = {
-		"Jacob Perkins <jap1@users.sourceforge.net>",
-		"Adam Schreiber <sadam@clemson.edu>",
-		"Milo Casagrande <milo_casagrande@yahoo.it>",
-		NULL
-	};
-
-	const gchar *artists[] = {
-		"Jacob Perkins <jap1@users.sourceforge.net>",
-		"Stef Walter <stef@memberwebs.com>",
-		NULL
-	};
-
-	about = GTK_ABOUT_DIALOG (gtk_about_dialog_new ());
-	gtk_about_dialog_set_artists (about, artists);
-	gtk_about_dialog_set_authors (about, authors);
-	gtk_about_dialog_set_documenters (about, documenters);
-	gtk_about_dialog_set_version (about, VERSION);
-	gtk_about_dialog_set_comments (about, _("Passwords and Keys"));
-	gtk_about_dialog_set_copyright (about, "Copyright \xc2\xa9 2002 - 2010 Seahorse Project");
-	gtk_about_dialog_set_translator_credits (about, _("translator-credits"));
-	gtk_about_dialog_set_logo_icon_name (about, "seahorse");
-	gtk_about_dialog_set_website (about, "http://www.gnome.org/projects/seahorse");
-	gtk_about_dialog_set_website_label (about, _("Seahorse Project Homepage"));
-
-	g_signal_connect (about, "response", G_CALLBACK (gtk_widget_hide), NULL);
-	gtk_window_set_transient_for (GTK_WINDOW (about), seahorse_catalog_get_window (self));
-
-	gtk_dialog_run (GTK_DIALOG (about));
-	gtk_widget_destroy (GTK_WIDGET (about));
-}
-
-static void
-on_help_show (GtkAction *action,
-              SeahorseCatalog *self)
-{
-	g_return_if_fail (SEAHORSE_IS_CATALOG (self));
-	g_return_if_fail (GTK_IS_ACTION (action));
-	seahorse_widget_show_help (SEAHORSE_WIDGET (self));
-}
 
 static GList *
 lookup_actions_for_objects (SeahorseCatalog *self,
@@ -285,14 +214,7 @@ static const GtkActionEntry UI_ENTRIES[] = {
 	  N_("Show the properties of this item"), G_CALLBACK (on_properties_object) },
 	{ "properties-keyring", GTK_STOCK_PROPERTIES, NULL, NULL,
 	  N_("Show the properties of this keyring"), G_CALLBACK (on_properties_place) },
-	{ "app-preferences", GTK_STOCK_PREFERENCES, N_("Prefere_nces"), NULL,
-	  N_("Change preferences for this program"), G_CALLBACK (on_app_preferences) },
 	{ "view-menu", NULL, N_("_View") },
-	{ "help-menu", NULL, N_("_Help") },
-	{ "app-about", GTK_STOCK_ABOUT, NULL, NULL,
-	  N_("About this program"), G_CALLBACK (on_app_about) },
-	{ "help-show", GTK_STOCK_HELP, N_("_Contents"), "F1",
-	  N_("Show Seahorse help"), G_CALLBACK (on_help_show) }
 };
 
 static void
@@ -413,8 +335,6 @@ seahorse_catalog_constructed (GObject *obj)
 	actions = gtk_action_group_new ("main");
 	gtk_action_group_set_translation_domain (actions, GETTEXT_PACKAGE);
 	gtk_action_group_add_actions (actions, UI_ENTRIES, G_N_ELEMENTS (UI_ENTRIES), self);
-	action = gtk_action_group_get_action (actions, "app-preferences");
-	gtk_action_set_visible (action, seahorse_prefs_available ());
 	self->pv->edit_delete = gtk_action_group_get_action (actions, "edit-delete");
 	g_object_ref (self->pv->edit_delete);
 	self->pv->properties_object = gtk_action_group_get_action (actions, "properties-object");

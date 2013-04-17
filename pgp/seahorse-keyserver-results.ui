@@ -16,10 +16,6 @@
 				<menuitem action="remote-find"/>
 			</menu>
 		</placeholder>
-		<menu name="Help" action="help-menu">
-			<menuitem action="help-show"/>
-		</menu>
-
 	</menubar>
 
 	<toolbar name="MainToolbar">

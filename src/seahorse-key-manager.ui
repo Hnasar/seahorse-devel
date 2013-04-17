@@ -1,14 +1,10 @@
 <ui>
 	<menubar>
 		<menu name="File" action="file-menu">
-			<menuitem action="file-new"/>
-			<menuitem action="file-import"/>
 			<menuitem action="file-export"/>
 			<separator/>
 			<placeholder name="FileCommands">
 			</placeholder>
-			<separator/>
-			<menuitem action="app-quit"/>
 		</menu>
 		<menu name="Edit" action="edit-menu">
 			<menuitem action="edit-export-clipboard"/>
